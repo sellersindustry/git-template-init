@@ -1,0 +1,40 @@
+{
+	"name": "git-template-init",
+	"version": "0.0.0",
+	"author": "Sellers Industries",
+	"license": "MIT",
+	"description": "Scaffolds a new project from a GitHub repository without it being a fork. Make your own \"create-react-app\".",
+	"main": "dist/index.js",
+	"type": "module",
+	"scripts": {
+		"build": "tsc --build --force tsconfig.json",
+		"prepare": "npm run build",
+		"lint": "eslint . --ext .ts",
+		"cli": "node dist/index.js",
+		"test": "echo \"no test specified\""
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/sellersindustry/git-template-init.git"
+	},
+	"bugs": {
+		"url": "https://github.com/sellersindustry/git-template-init/issues"
+	},
+	"homepage": "https://github.com/sellersindustry/git-template-init#readme",
+	"devDependencies": {
+		"@types/adm-zip": "^0.5.5",
+		"@types/fs-extra": "^11.0.4",
+		"@types/node": "^20.11.17",
+		"@typescript-eslint/eslint-plugin": "^6.21.0",
+		"eslint": "^8.56.0",
+		"eslint-config-standard-with-typescript": "^43.0.1",
+		"eslint-plugin-import": "^2.29.1",
+		"eslint-plugin-n": "^16.6.2",
+		"eslint-plugin-promise": "^6.1.1",
+		"typescript": "^5.3.3"
+	},
+	"dependencies": {
+		"adm-zip": "^0.5.10",
+		"fs-extra": "^11.2.0"
+	}
+}
