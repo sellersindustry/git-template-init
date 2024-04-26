@@ -1,75 +1,80 @@
+
 import fs from "fs-extra";
 import path from "path";
-import https from "https";
-import AdmZip from "adm-zip";
 import { Options } from './options.js'
+import { getArchiveURL } from "./archive-url.js";
+import { InternalError } from "./error.js";
+import { FilesUtility } from "./files-utility.js";
 
 
-GitTemplateInit({
-    gitURL: "https://github.com/sellersindustry/SherpaJS-template-module",
-    location: "./test"
-});
+(async () => {
+    await GitTemplateInit({
+        git: "https://github.com/sellersindustry/SherpaJS-template-module",
+        directory: "./test"
+    });
+})();
+
+
 
 export default async function GitTemplateInit(options:Options) {
-    validateGitHubURL(options.gitURL);
-    let { owner, repo } = extractRepoDetails(options.gitURL);
-    let archiveURL      = getArchiveURL(owner, repo);
-    let zipFile         = path.join(options.location, "git-template-init.zip");
-    let extractionDir   = path.join(options.location, "git-template-init");
-    await download(archiveURL, zipFile);
-    extract(zipFile, extractionDir);
-}
+    let archiveURL = getArchiveURL(options.git);
+    let directory  = getDownloadDirectory(options.directory);
+    let filepath   = await FilesUtility.download(archiveURL, directory);
 
+    FilesUtility.extract(filepath, directory);
+    fs.unlinkSync(filepath);
 
-
-function extract(inputFile:string, outputPath:string) {
-    if (!fs.existsSync(outputPath)) {
-        fs.mkdirSync(outputPath);
-    }
-    let zip = new AdmZip(inputFile);
-    zip.extractAllTo(outputPath, true);
-}
-
-
-async function download(archiveURL:string, filename:string) {
-    // let file = fs.createWriteStream(filename);
-    // https.get(archiveURL, response => {
-    //     response.pipe(file);
-    //     file.on("finish", () => {
-    //         file.close();
-    //     });
-    // }).on("error", error => {
-    //     fs.unlink(filename);
-    //     throw new Error("Unable to download archive: " + error);
-    // });
-}
-
-
-function getArchiveURL(owner:string, repo:string) {
-    return `https://github.com/${owner}/${repo}/archive/refs/heads/main.zip`;
-}
-
-
-function extractRepoDetails(gitURL:string):{ owner:string, repo:string } {
-    let url      = gitURL.endsWith("/") ? gitURL.slice(0, -1) : gitURL;
-    let sections = url.split("/");
-    if (sections.length < 3) {
-        throw new Error("Invalid GitHub Repository URL format");
-    }
-    return {
-        owner: sections[sections.length - 2],
-        repo:  sections[sections.length - 1],
-    }
-}
-
-
-function validateGitHubURL(gitURL:string) {
-    try {
-        let url = new URL(gitURL);
-        if (url.hostname.toLowerCase() != "github.com") {
-            throw new Error("Only GitHub repositories are supported");
+    //! FIXME Cleanup
+    if (!options.disablePrimaryDirectoryFix) {
+        let subdirectories = FilesUtility.getDirectories(directory);
+        if (subdirectories.length == 1) {
+            moveFilesUpOneLevel(path.join(directory, subdirectories[0]));
         }
-    } catch {
-        throw new Error("Invalid URL format");
     }
 }
+
+
+function getDownloadDirectory(directory:string) {
+    if (!fs.existsSync(directory)) {
+        fs.mkdirSync(directory);
+    }
+    if (!FilesUtility.isDirectoryEmpty(directory)) {
+        throw new InternalError("Directory is not empty");
+    }
+    return directory;
+}
+
+
+
+function moveFilesUpOneLevel(source:string):Promise<void> {
+    //! FIXME Cleanup
+    return new Promise((resolve, reject) => {
+        fs.readdir(source, (err, files) => {
+            if (err) {
+                reject(err);
+            } else {
+                const moveFile = (fileIndex: number): void => {
+                    if (fileIndex >= files.length) {
+                        fs.rmdir(source).then(() => {
+                            resolve();
+                        });
+                        return;
+                    }
+            
+                    let sourcePath = path.join(source, files[fileIndex]);
+                    let targetPath = path.join(source, "..", files[fileIndex]);
+            
+                    fs.rename(sourcePath, targetPath, (err) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            moveFile(fileIndex + 1);
+                        }
+                    });
+                };
+                moveFile(0);
+            }
+        });
+    });
+}
+

@@ -1,7 +1,8 @@
 
 
 export type Options = {
-    gitURL: string;    
-    location: string;
+    git: string;    
+    directory: string;
+    disablePrimaryDirectoryFix?: boolean;
 }
 
